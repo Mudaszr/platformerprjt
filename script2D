@@ -1,38 +1,41 @@
+extends KinematicBody2D
 
- 
- 
-var movementSpeed : float = 3f;
-var jumpSpeed : float = 500f;
-var isGrounded : boolean = true;
- 
-function Update ()
-{
-    if(isGrounded){
-        rigidbody2D.gravityScale = 2.1;
-    }
-   
-    if(Input.GetKey(KeyCode.LeftArrow)){
-        transform.position += Vector3.left * movementSpeed * Time.deltaTime;
-        transform.rotation.y = 180; //This is for rotating sprite images
-    }
-    if(Input.GetKey(KeyCode.RightArrow)){
-        transform.position += Vector3.right * movementSpeed * Time.deltaTime;
-        transform.rotation.y = 0; //This is for rotating sprite images
-    }
-    if(Input.GetKey(KeyCode.DownArrow)){
-        if(!isGrounded){
-            rigidbody2D.gravityScale += 2;
-        }
-    }
-    if(Input.GetKeyDown(KeyCode.UpArrow)){
-        if(isGrounded){
-            rigidbody2D.AddForce(Vector3.up * jumpSpeed);
-            isGrounded = false;
-        }
-    }
-}
- 
-function OnCollisionEnter2D (col : Collision2D)
-{
-    isGrounded = true;
-}
+# Movement and jump settings
+export var movement_speed := 150.0
+export var jump_speed := -500.0
+var gravity := 980.0
+var velocity := Vector2()
+var is_grounded := false
+
+func _physics_process(delta):
+    velocity.x = 0  # Reset horizontal movement each frame
+
+    # Movement
+    if Input.is_action_pressed("ui_left"):
+        velocity.x = -movement_speed
+        $Sprite.flip_h = true  # Flip sprite to face left
+
+    elif Input.is_action_pressed("ui_right"):
+        velocity.x = movement_speed
+        $Sprite.flip_h = false  # Flip sprite to face right
+
+    # Apply gravity
+    if not is_on_floor():
+        velocity.y += gravity * delta
+
+    # Jumping
+    if Input.is_action_just_pressed("ui_up") and is_on_floor():
+        velocity.y = jump_speed
+
+    # Fast fall when pressing down
+    if Input.is_action_pressed("ui_down") and not is_on_floor():
+        velocity.y += gravity * delta * 2
+
+    # Move and detect collisions
+    velocity = move_and_slide(velocity, Vector2.UP)
+
+func _on_FloorDetector_body_entered(body):
+    is_grounded = true
+
+func _on_FloorDetector_body_exited(body):
+    is_grounded = false
